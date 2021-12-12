@@ -499,7 +499,9 @@ jobs:
       - name: Run Logging Tests
         run: ./tools/bin/cloud_storage_logging_test.sh
         env:
+          # AWS_S3_INTEGRATION_TEST_CREDS can be found in LastPass as AWS_S3_INTEGRATION_TEST_CREDS
           AWS_S3_INTEGRATION_TEST_CREDS: ${{ secrets.AWS_S3_INTEGRATION_TEST_CREDS }}
+          # GOOGLE_CLOUD_STORAGE_TEST_CREDS can be found in LastPass as "google cloud storage ( gcs ) test creds"
           GOOGLE_CLOUD_STORAGE_TEST_CREDS: ${{ secrets.GOOGLE_CLOUD_STORAGE_TEST_CREDS }}
 
       - name: Show Disk Usage
