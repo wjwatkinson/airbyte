@@ -60,6 +60,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -83,7 +84,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class DestinationAcceptanceTest {
+public abstract class DestinationAcceptanceTest implements DateTimeConverter {
 
   private static final String NORMALIZATION_VERSION = "dev";
 
@@ -98,6 +99,8 @@ public abstract class DestinationAcceptanceTest {
   protected Path localRoot;
   private ProcessFactory processFactory;
   private WorkerConfigs workerConfigs;
+
+  protected Map<String, String> dateTimeFieldNames = Collections.emptyMap();
 
   /**
    * Name of the docker image that the tests will run against.
@@ -365,6 +368,10 @@ public abstract class DestinationAcceptanceTest {
     final JsonNode config = getConfig();
     final String defaultSchema = getDefaultSchema(config);
     runSyncAndVerifyStateOutput(config, messages, configuredCatalog, false);
+    if (requiresDateTimeConversionForSync()) {
+      dateTimeFieldNames = getDateTimeFieldsFormat(catalog.getStreams());
+      convertDateTimeFields(messages, dateTimeFieldNames);
+    }
     retrieveRawRecordsAndAssertSameMessages(catalog, messages, defaultSchema);
   }
 
@@ -556,6 +563,10 @@ public abstract class DestinationAcceptanceTest {
 
     final String defaultSchema = getDefaultSchema(config);
     final List<AirbyteRecordMessage> actualMessages = retrieveNormalizedRecords(catalog, defaultSchema);
+    if (requiresDateTimeConversionForNormalizedSync()) {
+      dateTimeFieldNames = getDateTimeFieldsFormat(catalog.getStreams());
+      convertDateTimeFields(messages, dateTimeFieldNames);
+    }
     assertSameMessages(messages, actualMessages, true);
   }
 
@@ -1092,7 +1103,7 @@ public abstract class DestinationAcceptanceTest {
         }
         LOGGER.info("For {} Expected {} vs Actual {}", key, expectedValue, actualValue);
         assertTrue(actualData.has(key));
-        assertSameValue(expectedValue, actualValue);
+        assertSameValue(key, expectedValue, actualValue);
       }
     }
   }
@@ -1102,18 +1113,17 @@ public abstract class DestinationAcceptanceTest {
    *
    * @param data - data node from AirbyteMessage
    */
-  private void sortDataFields(JsonNode data) {
+  protected void sortDataFields(JsonNode data) {
     var sortedFields = StreamSupport.stream(Spliterators.spliteratorUnknownSize(data.fields(),
         Spliterator.ORDERED), false)
-        .sorted(Entry.comparingByKey(Comparator.comparing(String::toLowerCase)))
-        .collect(Collectors.toList());
+        .sorted(Entry.comparingByKey(Comparator.comparing(String::toLowerCase))).toList();
     ((ObjectNode) data).removeAll();
     IntStream.range(0, sortedFields.size())
-        .forEach(i -> ((ObjectNode) data).set(sortedFields.get(i).getKey(), sortedFields.get(i).getValue()));
+        .forEach(i -> ((ObjectNode) data).set(sortedFields.get(i).getKey().toLowerCase(), sortedFields.get(i).getValue()));
   }
 
   // Allows subclasses to implement custom comparison asserts
-  protected void assertSameValue(final JsonNode expectedValue, final JsonNode actualValue) {
+  protected void assertSameValue(final String key, final JsonNode expectedValue, final JsonNode actualValue) {
     assertEquals(expectedValue, actualValue);
   }
 
@@ -1313,6 +1323,26 @@ public abstract class DestinationAcceptanceTest {
             currentStreamNumber));
     // Close destination
     destination.notifyEndOfStream();
+  }
+
+  protected static Map<String, String> getDateTimeFieldsFormat(final List<AirbyteStream> streams) {
+    final Map<String, String> fieldFormats = new HashMap<>();
+
+    streams.stream().map(AirbyteStream::getJsonSchema).forEach(streamSchema -> {
+      final JsonNode fieldDefinitions = streamSchema.get("properties");
+      final Iterator<Entry<String, JsonNode>> iterator = fieldDefinitions.fields();
+      while (iterator.hasNext()) {
+        Map.Entry<String, JsonNode> entry = iterator.next();
+        if (entry.getValue().has("format")) {
+          String format = entry.getValue().get("format").asText();
+          if (format.equalsIgnoreCase("date") || format.equalsIgnoreCase("date-time")) {
+            fieldFormats.put(entry.getKey(), format);
+          }
+        }
+      }
+    });
+
+    return fieldFormats;
   }
 
   private final static String LOREM_IPSUM =
