@@ -344,8 +344,8 @@ public class BigQueryDenormalizedGcsDestinationAcceptanceTest extends Destinatio
 
   @Override
   protected void assertSameValue(String key,
-      JsonNode expectedValue,
-      JsonNode actualValue) {
+                                 JsonNode expectedValue,
+                                 JsonNode actualValue) {
     if (DATE_TIME.equals(dateTimeFieldNames.getOrDefault(key, StringUtils.EMPTY))) {
       Assertions.assertEquals(expectedValue.asLong() / 1000000, actualValue.asLong());
     } else {
