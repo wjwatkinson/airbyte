@@ -1464,7 +1464,6 @@ public class DatabaseConfigPersistence implements ConfigPersistence {
     });
   }
 
-  // todo (cgardens) - how to protect types here?
   @Override
   public void replaceAllConfigs(final Map<AirbyteConfig, Stream<?>> configs, final boolean dryRun) throws IOException {
     if (dryRun) {
