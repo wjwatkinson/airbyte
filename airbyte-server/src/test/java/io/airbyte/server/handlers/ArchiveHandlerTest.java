@@ -74,7 +74,7 @@ public class ArchiveHandlerTest {
   private Database jobDatabase;
   private Database configDatabase;
   private JobPersistence jobPersistence;
-  private DatabaseConfigPersistence configPersistence;
+  private ConfigPersistence configPersistence;
   private ConfigPersistence seedPersistence;
 
   private ConfigRepository configRepository;
@@ -111,7 +111,7 @@ public class ArchiveHandlerTest {
     configDatabase = databaseProviders.createNewConfigsDatabase();
     jobPersistence = new DefaultJobPersistence(jobDatabase);
     seedPersistence = YamlSeedConfigPersistence.getDefault();
-    configPersistence = new DatabaseConfigPersistence(jobDatabase);
+    configPersistence = DatabaseConfigPersistence.createWithValidation(jobDatabase);
     configPersistence.replaceAllConfigs(Collections.emptyMap(), false);
     configPersistence.loadData(seedPersistence);
     configRepository = new ConfigRepository(configPersistence, new NoOpSecretsHydrator(), Optional.empty(), Optional.empty(), configDatabase);

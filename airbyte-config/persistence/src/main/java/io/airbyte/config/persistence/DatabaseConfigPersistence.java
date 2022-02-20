@@ -87,6 +87,13 @@ public class DatabaseConfigPersistence implements ConfigPersistence {
   private final ExceptionWrappingDatabase database;
   private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConfigPersistence.class);
 
+  /**
+   * Entrypoint into DatabaseConfigPersistence. Except in testing, we should never be using it without
+   * it being decorated with validation classes.
+   *
+   * @param database - database where configs are stored.
+   * @return database config persistence wrapped in validation decorators
+   */
   public static ConfigPersistence createWithValidation(final Database database) {
     return new ClassEnforcingConfigPersistence(new ValidatingConfigPersistence(new DatabaseConfigPersistence(database)));
   }
