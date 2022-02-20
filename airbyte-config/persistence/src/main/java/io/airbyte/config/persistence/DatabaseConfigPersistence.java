@@ -88,10 +88,11 @@ public class DatabaseConfigPersistence implements ConfigPersistence {
   private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConfigPersistence.class);
 
   public static ConfigPersistence createWithValidation(final Database database) {
-    return new ValidatingConfigPersistence(new DatabaseConfigPersistence(database));
+    return new ClassEnforcingConfigPersistence(new ValidatingConfigPersistence(new DatabaseConfigPersistence(database)));
   }
 
-  public DatabaseConfigPersistence(final Database database) {
+  @VisibleForTesting
+  DatabaseConfigPersistence(final Database database) {
     this.database = new ExceptionWrappingDatabase(database);
   }
 
@@ -1463,6 +1464,7 @@ public class DatabaseConfigPersistence implements ConfigPersistence {
     });
   }
 
+  // todo (cgardens) - how to protect types here?
   @Override
   public void replaceAllConfigs(final Map<AirbyteConfig, Stream<?>> configs, final boolean dryRun) throws IOException {
     if (dryRun) {
