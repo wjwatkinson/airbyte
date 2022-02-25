@@ -4,6 +4,7 @@
 
 package io.airbyte.config.persistence;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.spy;
 
@@ -24,6 +25,7 @@ import io.airbyte.db.instance.development.MigrationDevHelper;
 import io.airbyte.protocol.models.ConnectorSpecification;
 import io.airbyte.validation.json.JsonValidationException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
@@ -95,6 +97,13 @@ public class ConfigRepositoryE2EReadWriteTest {
     assertEquals(MockData.standardSyncs().size(), configRepository.countConnectionsForWorkspace(workspaceId));
     assertEquals(MockData.destinationConnections().size(), configRepository.countDestinationsForWorkspace(workspaceId));
     assertEquals(MockData.sourceConnections().size(), configRepository.countSourcesForWorkspace(workspaceId));
+  }
+
+  @Test
+  public void testListWorkspaceStandardSync() throws IOException {
+
+    final List<StandardSync> syncs = configRepository.listWorkspaceStandardSyncs(MockData.standardWorkspace().getWorkspaceId());
+    assertThat(MockData.standardSyncs()).hasSameElementsAs(syncs);
   }
 
 }
