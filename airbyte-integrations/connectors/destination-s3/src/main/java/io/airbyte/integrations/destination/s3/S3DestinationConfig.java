@@ -35,6 +35,7 @@ public class S3DestinationConfig {
   private final String secretAccessKey;
   private final Integer partSize;
   private final S3FormatConfig formatConfig;
+  private final AmazonS3 s3Client;
 
   /**
    * The part size should not matter in any use case that depends on this constructor. So the default
@@ -51,13 +52,14 @@ public class S3DestinationConfig {
   }
 
   public S3DestinationConfig(final String endpoint,
-                             final String bucketName,
-                             final String bucketPath,
-                             final String bucketRegion,
-                             final String accessKeyId,
-                             final String secretAccessKey,
-                             final Integer partSize,
-                             final S3FormatConfig formatConfig) {
+      final String bucketName,
+      final String bucketPath,
+      final String bucketRegion,
+      final String accessKeyId,
+      final String secretAccessKey,
+      final Integer partSize,
+      final S3FormatConfig formatConfig,
+      final AmazonS3 s3Client) {
     this.endpoint = endpoint;
     this.bucketName = bucketName;
     this.bucketPath = bucketPath;
@@ -66,6 +68,18 @@ public class S3DestinationConfig {
     this.secretAccessKey = secretAccessKey;
     this.formatConfig = formatConfig;
     this.partSize = partSize;
+    this.s3Client = s3Client;
+  }
+
+  public S3DestinationConfig(final String endpoint,
+      final String bucketName,
+      final String bucketPath,
+      final String bucketRegion,
+      final String accessKeyId,
+      final String secretAccessKey,
+      final Integer partSize,
+      final S3FormatConfig formatConfig) {
+    this(endpoint, bucketName, bucketPath, bucketRegion, accessKeyId, secretAccessKey, partSize, formatConfig, null);
   }
 
   public static S3DestinationConfig getS3DestinationConfig(final JsonNode config) {
@@ -127,6 +141,10 @@ public class S3DestinationConfig {
   }
 
   public AmazonS3 getS3Client() {
+    if(this.s3Client !=null) {
+      return this.s3Client;
+    }
+
     final AWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, secretAccessKey);
 
     if (accessKeyId.isEmpty() && !secretAccessKey.isEmpty()
