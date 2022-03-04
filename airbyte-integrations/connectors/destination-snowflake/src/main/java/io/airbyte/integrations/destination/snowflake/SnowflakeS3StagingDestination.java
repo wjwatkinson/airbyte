@@ -4,6 +4,7 @@
 
 package io.airbyte.integrations.destination.snowflake;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.airbyte.commons.json.Jsons;
 import io.airbyte.db.jdbc.JdbcDatabase;
@@ -12,6 +13,10 @@ import io.airbyte.integrations.base.Destination;
 import io.airbyte.integrations.base.sentry.AirbyteSentry;
 import io.airbyte.integrations.destination.jdbc.AbstractJdbcDestination;
 import io.airbyte.integrations.destination.jdbc.copy.StagingConsumerFactory;
+import io.airbyte.integrations.destination.jdbc.copy.s3.S3CopyConfig;
+import io.airbyte.integrations.destination.s3.S3DestinationConfig;
+import io.airbyte.integrations.destination.s3.csv.S3CsvFormatConfig;
+import io.airbyte.integrations.destination.s3.csv.S3CsvFormatConfig.Flattening;
 import io.airbyte.protocol.models.AirbyteConnectionStatus;
 import io.airbyte.protocol.models.AirbyteMessage;
 import io.airbyte.protocol.models.ConfiguredAirbyteCatalog;
@@ -27,13 +32,14 @@ public class SnowflakeS3StagingDestination extends AbstractJdbcDestination imple
   private static final Logger LOGGER = LoggerFactory.getLogger(SnowflakeS3StagingDestination.class);
 
   public SnowflakeS3StagingDestination() {
-    super("", new SnowflakeSQLNameTransformer(), new SnowflakeS3StagingSqlOperations());
+    super("", new SnowflakeSQLNameTransformer(), new SnowflakeSqlOperations());
   }
 
   @Override
   public AirbyteConnectionStatus check(final JsonNode config) {
+    final S3DestinationConfig s3Config = getS3DestinationConfig(config);
     final SnowflakeSQLNameTransformer nameTransformer = new SnowflakeSQLNameTransformer();
-    final SnowflakeS3StagingSqlOperations SnowflakeS3StagingSqlOperations = new SnowflakeS3StagingSqlOperations();
+    final SnowflakeS3StagingSqlOperations SnowflakeS3StagingSqlOperations = new SnowflakeS3StagingSqlOperations(s3Config.getS3Client(), s3Config);
     try (final JdbcDatabase database = getDatabase(config)) {
       final String outputSchema = super.getNamingResolver().getIdentifier(config.get("schema").asText());
       AirbyteSentry.executeWithTracing("CreateAndDropTable",
@@ -82,8 +88,17 @@ public class SnowflakeS3StagingDestination extends AbstractJdbcDestination imple
   public AirbyteMessageConsumer getConsumer(final JsonNode config,
                                             final ConfiguredAirbyteCatalog catalog,
                                             final Consumer<AirbyteMessage> outputRecordCollector) {
-    return new StagingConsumerFactory().create(outputRecordCollector, getDatabase(config),
-        new SnowflakeS3StagingSqlOperations(), new SnowflakeSQLNameTransformer(), config, catalog);
+    final S3DestinationConfig s3Config = getS3DestinationConfig(config);
+    return new StagingConsumerFactory().create(
+        outputRecordCollector,
+        getDatabase(config),
+        new SnowflakeS3StagingSqlOperations(s3Config.getS3Client(), s3Config),
+        new SnowflakeSQLNameTransformer(), config, catalog);
+  }
+
+  private S3DestinationConfig getS3DestinationConfig(final JsonNode config) {
+    final JsonNode loadingMethod = config.get("loading_method");
+    return S3DestinationConfig.getS3DestinationConfig(loadingMethod);
   }
 
 }
