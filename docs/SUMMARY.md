@@ -101,6 +101,7 @@
     - [Kafka](integrations/sources/kafka.md)
     - [Klaviyo](integrations/sources/klaviyo.md)
     - [Kustomer](integrations/sources/kustomer.md)
+    - [Kyriba](integrations/sources/kyriba.md)
     - [Lemlist](integrations/sources/lemlist.md)
     - [LinkedIn Ads](integrations/sources/linkedin-ads.md)
     - [Linnworks](integrations/sources/linnworks.md)
