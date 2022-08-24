@@ -58,9 +58,6 @@ class CatalogModel(BaseModel, metaclass=AllOptional):
                 if allow_none:
                     if "type" in prop:
                         prop["type"] = ["null", prop["type"]]
-                    elif "$ref" in prop:
-                        ref = prop.pop("$ref")
-                        prop["oneOf"] = [{"type": "null"}, {"$ref": ref}]
 
     @classmethod
     def schema(cls, **kwargs) -> Dict[str, Any]:
