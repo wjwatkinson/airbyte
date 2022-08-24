@@ -169,6 +169,7 @@ class TransactionStream(BraintreeStream):
     primary_key = "id"
     model = Transaction
     cursor_field = "created_at"
+    source_defined_cursor = False
 
     def get_items(self, start_date: datetime):
         return self._gateway.transaction.search(braintree.TransactionSearch.created_at >= start_date)
